@@ -1,56 +1,55 @@
-# main.py
 import traceback
 import json
 from pathlib import Path
 from sqlalchemy.orm import Session
 
-from database import get_db_session, create_database_tables, DATABASE_URL
+from database import GetDBSession, CreateDatabaseTables
 from etl import extract, transform, load
 
-API_BASE_URL_PARA_EXTRACT = "https://world.openfoodfacts.net/api/v2"
+BASE_URL_API = "https://world.openfoodfacts.net/api/v2"
 
-def process_product_etl(product_code_to_fetch: str, db: Session, api_base_url: str):
-    print(f"INFO: Iniciando ETL para o código: {product_code_to_fetch}")
+def RunETL(productBarcode: str, db: Session, apiBaseUrl: str):
+    print(f"INFO: Iniciando ETL para o código: {productBarcode}")
     
-    api_data = extract.fetch_product_data_from_api(product_code_to_fetch, api_base_url)
-    if not api_data:
-        print(f"ERROR: Falha na extração para {product_code_to_fetch}")
+    data = extract.Extract(productBarcode, apiBaseUrl)
+    if not data:
+        print(f"ERROR: Falha na extração para {productBarcode}")
         return False
 
-    transformed_data = transform.transform_api_data(api_data, product_code_to_fetch)
-    if not transformed_data:
-        print(f"ERROR: Falha na transformação para {product_code_to_fetch}")
+    transformedData = transform.Transform(data, productBarcode)
+    if not transformedData:
+        print(f"ERROR: Falha na transformação para {productBarcode}")
         return False
 
     try:
-        load.load_data_to_db(db, transformed_data)
+        load.Load(db, transformedData)
         return True
     except Exception as e: 
-        print(f"ERROR: Erro ao carregar dados do produto {product_code_to_fetch}: {e}")
+        print(f"ERROR: Erro ao carregar dados do produto {productBarcode}: {e}")
         traceback.print_exc()
         return False
 
-def run_etl_pipeline():
-    create_database_tables()
+def Main():
+    CreateDatabaseTables()
 
-    json_path = Path("product_codes_dict.json")
+    jsonPath = Path("product_codes_dict.json")
 
-    with open(json_path, "r", encoding="utf-8") as f:
+    with open(jsonPath, "r", encoding="utf-8") as f:
         product_codes_json = json.load(f)
         product_codes = [str(item["code"]) for item in product_codes_json]
 
-    db_session = get_db_session()
+    db_session = GetDBSession()
     db: Session = next(db_session)
 
     for code in product_codes:
         try:
-            success = process_product_etl(code, db, API_BASE_URL_PARA_EXTRACT)
+            success = RunETL(code, db, BASE_URL_API)
             if success:
                 db.commit()
                 print(f"INFO: COMMIT realizado com sucesso para o produto: {code}")
             else:
                 db.rollback()
-                print(f"WARN: ROLLBACK realizado para o produto: {code}")
+                print(f"WARNING: ROLLBACK realizado para o produto: {code}")
         except Exception as e:
             print(f"ERROR: Erro inesperado com o produto {code}: {e}")
             traceback.print_exc()
@@ -64,4 +63,4 @@ def run_etl_pipeline():
         pass
 
 if __name__ == "__main__":
-    run_etl_pipeline()
+    Main()

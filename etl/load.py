@@ -6,24 +6,24 @@ from model import (
     ProdutoTag, ProdutoCategoria
 )
 
-def sanitize_text(texto, max_len=None, only_ascii=False):
+def SanitizeText(texto, maxLength=None, onlyAscii=False):
     if not isinstance(texto, str):
         texto = str(texto or "")
     texto = texto.strip()
-    if only_ascii:
+    if onlyAscii:
         texto = re.sub(r'[^\x00-\x7F]+', '', texto)
-    if max_len:
-        return texto[:max_len]
+    if maxLength:
+        return texto[:maxLength]
     return texto
 
-def load_data_to_db(db: Session, data: dict):
+def Load(db: Session, data: dict):
     if db.query(Produto).filter_by(codigo=data["codigo"]).first():
         print(f"WARN: Produto {data['codigo']} já existe no banco. Pulando inserção.")
         return
     
     produto = Produto(
         codigo=data["codigo"],
-        nome=sanitize_text(data["nome"], 100),
+        nome=SanitizeText(data["nome"], 100),
         nutriscore=data.get("nutriscore"),
         ecoscore=data.get("ecoscore"),
         novascore=data.get("novascore"),
@@ -32,12 +32,12 @@ def load_data_to_db(db: Session, data: dict):
     db.flush()
 
     # Marcas
-    marcas_inseridas = set()
+    marcasInseridas = set()
     for marca_nome in data.get("marcas", []):
-        nome = sanitize_text(marca_nome, 100)
-        if not nome or nome in marcas_inseridas:
+        nome = SanitizeText(marca_nome, 100)
+        if not nome or nome in marcasInseridas:
             continue
-        marcas_inseridas.add(nome)
+        marcasInseridas.add(nome)
 
         marca = db.query(Marca).filter_by(nome=nome).first()
         if not marca:
@@ -47,12 +47,12 @@ def load_data_to_db(db: Session, data: dict):
         db.add(ProdutoMarca(produto_id=produto.codigo, marca_id=marca.id))
 
     # Categorias
-    categorias_inseridas = set()
+    categoriasInseridas = set()
     for categoria_nome in data.get("categorias", []):
-        nome = sanitize_text(categoria_nome, 100)
-        if not nome or nome in categorias_inseridas:
+        nome = SanitizeText(categoria_nome, 100)
+        if not nome or nome in categoriasInseridas:
             continue
-        categorias_inseridas.add(nome)
+        categoriasInseridas.add(nome)
 
         categoria = db.query(Categoria).filter_by(nome=nome).first()
         if not categoria:
@@ -62,12 +62,12 @@ def load_data_to_db(db: Session, data: dict):
         db.add(ProdutoCategoria(produto_id=produto.codigo, categoria_id=categoria.id))
 
     # Ingredientes
-    ingredientes_inseridos = set()
+    ingredientesInseridos = set()
     for ing in data.get("ingredientes", []):
-        nome = sanitize_text(ing.get("text"), 100)
-        if not nome or nome in ingredientes_inseridos:
+        nome = SanitizeText(ing.get("text"), 100)
+        if not nome or nome in ingredientesInseridos:
             continue
-        ingredientes_inseridos.add(nome)
+        ingredientesInseridos.add(nome)
 
         ingrediente = db.query(Ingrediente).filter_by(nome=nome).first()
         if not ingrediente:
@@ -84,7 +84,7 @@ def load_data_to_db(db: Session, data: dict):
     for nome, valor in data.get("nutrientes", {}).items():
         if not isinstance(valor, (int, float)):
             continue
-        nome = sanitize_text(nome, 100)
+        nome = SanitizeText(nome, 100)
         unidade = "g"
         nutriente = db.query(Nutriente).filter_by(nome=nome).first()
         if not nutriente:
@@ -94,12 +94,12 @@ def load_data_to_db(db: Session, data: dict):
         db.add(ProdutoNutriente(produto_id=produto.codigo, nutriente_id=nutriente.id, quantidade_100g=valor))
 
     # Tags
-    tags_inseridas = set()
+    tagsInseridas = set()
     for tag_nome in data.get("tags", []):
-        nome = sanitize_text(tag_nome, 100)
-        if not nome or nome in tags_inseridas:
+        nome = SanitizeText(tag_nome, 100)
+        if not nome or nome in tagsInseridas:
             continue
-        tags_inseridas.add(nome)
+        tagsInseridas.add(nome)
 
         tipo = "additive" if "add" in nome else "allergen"
 

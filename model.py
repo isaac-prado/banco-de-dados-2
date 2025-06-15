@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    create_engine, Column, String, Integer, Enum as SQLAlchemyEnum,
+    Column, String, Integer, Enum as SQLAlchemyEnum,
     ForeignKey, DECIMAL, Boolean, UniqueConstraint
 )
 from sqlalchemy.orm import relationship, declarative_base
